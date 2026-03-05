@@ -8,13 +8,29 @@ use App\Models\User;
 
 class FlaskController extends Controller
 {
+    //Usando token entre apis
+    public function create_flask_users(Request $request){
+        $response = Http::withHeaders([
+            "Authorization" => 'Token miclave123'
+        ])->post(env('API_FLASK'),[
+            'name' => $request->name,
+            'email' => $request->email
+        ]);
+
+        return[
+            'status' => $response->status(),
+            'body' => $response->body()
+        ];
+    }
+
+    //Anterior 
     public function store(Request $request){
+        
         $user = $request->user();
         
         $response = Http::withHeaders([
             'X-User-Id' => $user->id,
         ])->post("http://127.0.0.1:5000/api/books", [
-            'mipene' => 'gigante',
             'title' => $request->title,
             'isbn' => $request->isbn,
             'price' => $request ->price     

@@ -53,3 +53,10 @@ Route::post("/books", [FlaskController::class, 'store'])->middleware("auth:sanct
 Route::get("/books", [FlaskController::class, 'index'])->middleware("auth:sanctum");
 Route::get("/me_books", [FlaskController::class, 'me_books'])->middleware("auth:sanctum");
 
+//Ruta hacia DJANGO para probar el Token de peticones
+Route::post("/guardar_recetas", [DjangoController::class, "guardar_recetas"]);
+
+//Ruta hacia Express probar Token de peticiones
+Route::post("/users_firebase", [ExpressController::class, "users_firebase"]);
+
+
