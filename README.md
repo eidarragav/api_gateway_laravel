@@ -509,27 +509,6 @@ Proyecto académico desarrollado como práctica de **arquitectura de microservic
 * Firebase Firestore
 
 
-sequenceDiagram
-
-participant Cliente
-participant Gateway
-participant Productos
-participant Ventas
-
-Cliente->>Gateway: POST /api/sales
-Gateway->>Productos: validar_stock(product_id)
-
-Productos-->>Gateway: stock disponible
-
-Gateway->>Ventas: crear venta
-
-Ventas-->>Gateway: venta creada
-
-Gateway->>Productos: descontar stock
-
-Gateway-->>Cliente: respuesta exitosa
-
-
 flowchart LR
 
 A[Cliente / Postman] --> B[API Gateway - Laravel]
