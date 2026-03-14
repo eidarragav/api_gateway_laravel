@@ -508,7 +508,9 @@ Proyecto académico desarrollado como práctica de **arquitectura de microservic
 * MongoDB
 * Firebase Firestore
 
+## Arquitectura del sistema
 
+```mermaid
 flowchart LR
 
 A[Cliente / Postman] --> B[API Gateway - Laravel]
@@ -518,7 +520,4 @@ B --> D[Microservicio Ventas - Express]
 
 C --> E[(Firebase Firestore)]
 D --> F[(MongoDB)]
-
-B -->|JWT Auth| A
-B -->|TOKEN_APIS| C
-B -->|TOKEN_APIS| D
+```
