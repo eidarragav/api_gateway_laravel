@@ -513,11 +513,45 @@ Proyecto académico desarrollado como práctica de **arquitectura de microservic
 ```mermaid
 flowchart LR
 
-A[Cliente / Postman] --> B[API Gateway - Laravel]
+Cliente[Cliente / Postman]
 
-B --> C[Microservicio Productos - Flask]
-B --> D[Microservicio Ventas - Express]
+Gateway[API Gateway - Laravel]
 
-C --> E[(Firebase Firestore)]
-D --> F[(MongoDB)]
+Productos[Microservicio Productos - Flask]
+Ventas[Microservicio Ventas - Express]
+
+Firestore[(Firebase Firestore)]
+Mongo[(MongoDB)]
+
+Cliente -->|JWT Authentication| Gateway
+
+Gateway -->|TOKEN_APIS| Productos
+Gateway -->|TOKEN_APIS| Ventas
+
+Productos --> Firestore
+Ventas --> Mongo
+```
+
+## Arquitectura del sistema
+
+```mermaid
+flowchart LR
+
+Cliente[Cliente / Postman]
+
+Gateway[API Gateway - Laravel]
+
+Productos[Microservicio Productos - Flask]
+Ventas[Microservicio Ventas - Express]
+
+Firestore[(Firebase Firestore)]
+Mongo[(MongoDB)]
+
+Cliente -->|JWT Authentication| Gateway
+
+Gateway -->|TOKEN_APIS| Productos
+Gateway -->|TOKEN_APIS| Ventas
+
+Productos --> Firestore
+Ventas --> Mongo
 ```
