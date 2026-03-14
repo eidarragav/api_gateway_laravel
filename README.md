@@ -532,26 +532,21 @@ Productos --> Firestore
 Ventas --> Mongo
 ```
 
-## Arquitectura del sistema
+## Flujo de creación de venta
 
 ```mermaid
-flowchart LR
+sequenceDiagram
 
-Cliente[Cliente / Postman]
+participant Cliente
+participant Gateway
+participant Productos
+participant Ventas
 
-Gateway[API Gateway - Laravel]
-
-Productos[Microservicio Productos - Flask]
-Ventas[Microservicio Ventas - Express]
-
-Firestore[(Firebase Firestore)]
-Mongo[(MongoDB)]
-
-Cliente -->|JWT Authentication| Gateway
-
-Gateway -->|TOKEN_APIS| Productos
-Gateway -->|TOKEN_APIS| Ventas
-
-Productos --> Firestore
-Ventas --> Mongo
+Cliente->>Gateway: POST /api/sales
+Gateway->>Productos: validar stock
+Productos-->>Gateway: stock disponible
+Gateway->>Ventas: crear venta
+Ventas-->>Gateway: venta creada
+Gateway->>Productos: descontar stock
+Gateway-->>Cliente: respuesta
 ```
