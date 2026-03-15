@@ -9,6 +9,7 @@ El sistema permite:
 * gestionar productos
 * validar stock
 * registrar ventas
+* consultar ventas por usuario
 
 La aplicación está compuesta por múltiples servicios independientes que se comunican mediante **APIs REST**.
 
@@ -16,7 +17,7 @@ La aplicación está compuesta por múltiples servicios independientes que se co
 
 * **API Gateway:** Laravel (PHP)
 * **Microservicio de Productos:** Flask (Python) + Firebase Firestore
-* **Microservicio de Ventas:** Node.js + Express + MongoDB
+* **Microservicio de Ventas:** Express + MongoDB
 * **Autenticación:** JWT
 * **Comunicación entre microservicios:** HTTP REST con token compartido
 
@@ -51,6 +52,7 @@ Responsabilidades:
 Responsabilidades:
 
 * registro de ventas
+* consultar ventas por usuario
 * almacenamiento en **MongoDB**
 
 ---
@@ -105,8 +107,8 @@ Para ejecutar el proyecto es necesario tener instalado:
 ## 1. Clonar repositorio
 
 ```bash id="8cyrd0"
-git clone <URL_DEL_REPOSITORIO>
-cd proyecto
+git clone <https://github.com/eidarragav/shop_project/tree/main>
+cd shop_project
 ```
 
 ---
@@ -118,7 +120,7 @@ cd proyecto
 Entrar al directorio:
 
 ```bash id="h9w0xt"
-cd api_gateway
+cd api_gateway_laravel
 ```
 
 Instalar dependencias:
@@ -142,8 +144,13 @@ Editar `.env` y agregar:
 ```id="1t1vps"
 TOKEN_APIS=token_microservicios
 
-SALES_ENDPOINT=http://127.0.0.1:3000/api/sales
-PRODUCTS_ENDPOINT=http://127.0.0.1:5000/api/products
+PRODUCTS_ENDPOINT = http://127.0.0.1:5000/api/products
+CHECK_PRODUCT_STOCK_ENDPOINT = http://127.0.0.1:5000/api/products/validar_stock
+UPDATE_PRODUCT_STOCK_ENDPOINT = http://127.0.0.1:5000/api/products/descontar_stock
+SALES_ENDPOINT = http://127.0.0.1:3000/api/sales
+MY_SALES_ENDPOINT = http://127.0.0.1:3000/api/my_sales
+
+
 ```
 
 ---
@@ -203,7 +210,7 @@ Este servicio gestiona productos y el stock utilizando **Firebase Firestore**.
 Entrar al directorio:
 
 ```bash id="f4g6q6"
-cd products_service
+cd products_service_flask
 ```
 
 Instalar dependencias:
@@ -269,7 +276,7 @@ Este servicio registra las ventas y utiliza **MongoDB**.
 Entrar al directorio:
 
 ```bash id="p7izd5"
-cd sales_service
+cd sales_service_express
 ```
 
 Instalar dependencias:
@@ -315,7 +322,7 @@ mongod
 ## Ejecutar servidor
 
 ```bash id="5ol3ga"
-node app.js
+node server.js
 ```
 
 Servidor disponible en:
@@ -328,19 +335,75 @@ http://127.0.0.1:3000
 
 # Documentación de Endpoints (API Gateway)
 
-Estos son los endpoints que deben consumir los clientes.
+El cliente debe interactuar **únicamente con el API Gateway (Laravel)**.
+Los microservicios (**Flask - Productos** y **Express - Ventas**) no deben ser consumidos directamente por el cliente.
+
+Todas las respuestas del Gateway tienen el siguiente formato:
+
+```json
+{
+  "status": 200,
+  "body": {}
+}
+```
+
+* **status**: código HTTP devuelto por el microservicio.
+* **body**: contenido de la respuesta del microservicio.
 
 ---
 
-# Autenticación
+# Seguridad y Autenticación
 
-### Registrar usuario
+El sistema utiliza **dos niveles de seguridad**.
 
-POST `/api/register`
+## 1. JWT (Autenticación de usuario)
+
+Después del login el cliente recibe un **JWT token** que debe enviarse en todas las peticiones protegidas.
+
+Header requerido:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
+
+El API Gateway utiliza este token para:
+
+* autenticar al usuario
+* obtener el **user_id**
+* proteger los endpoints
+
+---
+
+## 2. Token interno entre microservicios
+
+El API Gateway utiliza un **TOKEN_APIS** para comunicarse con los microservicios.
+
+Este token viaja también en el **header Authorization** cuando el Gateway realiza peticiones a:
+
+* Flask (productos)
+* Express (ventas)
+
+```http
+Authorization: TOKEN_APIS
+```
+
+Este token se define en el archivo `.env` de **todos los servicios**.
+
+---
+
+# Endpoints de Autenticación
+
+## Registrar usuario
+
+**POST**
+
+```
+/api/register
+```
 
 Body:
 
-```json id="vds1va"
+```json
 {
  "name": "Usuario",
  "email": "usuario@email.com",
@@ -348,15 +411,30 @@ Body:
 }
 ```
 
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": {
+   "message": "Usuario registrado"
+ }
+}
+```
+
 ---
 
-### Login
+## Login
 
-POST `/api/login`
+**POST**
+
+```
+/api/login
+```
 
 Body:
 
-```json id="1gq20v"
+```json
 {
  "email": "usuario@email.com",
  "password": "123456"
@@ -365,41 +443,111 @@ Body:
 
 Respuesta:
 
-```json id="3s3d1k"
+```json
 {
- "token": "JWT_TOKEN"
+ "status": 200,
+ "body": {
+   "token": "JWT_TOKEN"
+ }
+}
+```
+
+Este token debe enviarse en todas las siguientes peticiones.
+
+---
+
+## Logout
+
+**POST**
+
+```
+/api/logout
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
+
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": {
+   "message": "Sesión cerrada"
+ }
 }
 ```
 
 ---
 
-### Logout
+# Endpoints de Productos
 
-POST `/api/logout`
+Los productos son gestionados por el **microservicio Flask** utilizando **Firebase Firestore**.
+
+Modelo de producto:
+
+| Campo    | Tipo    |
+| -------- | ------- |
+| name     | String  |
+| category | String  |
+| stock    | Integer |
+| price    | Integer |
+
+---
+
+## Obtener productos
+
+**GET**
+
+```
+/api/products
+```
 
 Header:
 
 ```http
-Authorization: Bearer TOKEN
+Authorization: Bearer JWT_TOKEN
+```
+
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": [
+   {
+     "id": "product_id",
+     "name": "Producto",
+     "price": 100,
+     "stock": 10,
+     "category": "categoria"
+   }
+ ]
+}
 ```
 
 ---
 
-# CRUD Productos
+## Crear producto
 
-### Obtener productos
+**POST**
 
-GET `/api/products`
+```
+/api/products
+```
 
----
+Header:
 
-### Crear producto
-
-POST `/api/products`
+```http
+Authorization: Bearer JWT_TOKEN
+```
 
 Body:
 
-```json id="prp7m9"
+```json
 {
  "name": "Producto",
  "price": 100,
@@ -408,15 +556,36 @@ Body:
 }
 ```
 
+Respuesta:
+
+```json
+{
+ "status": 201,
+ "body": {
+   "message": "Producto creado"
+ }
+}
+```
+
 ---
 
-### Actualizar producto
+## Actualizar producto
 
-PUT `/api/products/{id}`
+**PUT**
+
+```
+/api/products/{id}
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
 
 Body:
 
-```json id="y2wr02"
+```json
 {
  "name": "Producto actualizado",
  "price": 120,
@@ -425,76 +594,259 @@ Body:
 }
 ```
 
----
+Respuesta:
 
-### Eliminar producto
-
-DELETE `/api/products/{id}`
-
----
-
-# CRUD Ventas
-
-### Obtener ventas
-
-GET `/api/sales`
+```json
+{
+ "status": 200,
+ "body": {
+   "message": "Producto actualizado"
+ }
+}
+```
 
 ---
 
-### Crear venta
+## Eliminar producto
 
-POST `/api/sales`
+**DELETE**
+
+```
+/api/products/{id}
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
+
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": {
+   "message": "Producto eliminado"
+ }
+}
+```
+
+---
+
+# Endpoints de Ventas
+
+Las ventas son gestionadas por el **microservicio Express** utilizando **MongoDB**.
+
+Modelo de venta:
+
+| Campo      | Tipo    |
+| ---------- | ------- |
+| product_id | String  |
+| quantity   | Integer |
+| total      | Integer |
+| user_id    | Integer |
+
+El **user_id** se obtiene automáticamente desde el **JWT token** en el API Gateway.
+
+---
+
+## Obtener todas las ventas
+
+**GET**
+
+```
+/api/sales
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
+
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": [
+   {
+     "_id": "sale_id",
+     "product_id": "product_id",
+     "quantity": 2,
+     "total": 200,
+     "user_id": 1
+   }
+ ]
+}
+```
+
+---
+
+## Crear venta
+
+**POST**
+
+```
+/api/sales
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
 
 Body:
 
-```json id="0m7fjr"
+```json
 {
- "product_id": "ID_PRODUCTO",
+ "product_id": "PRODUCT_ID",
  "quantity": 2,
  "total": 200
 }
 ```
 
-Proceso interno:
+### Flujo interno de creación de venta
 
-1. Validar stock en microservicio de productos
-2. Crear venta en microservicio de ventas
-3. Descontar stock
+Cuando se crea una venta el API Gateway realiza el siguiente proceso:
+
+1. Consulta al microservicio de **productos** para verificar que el producto existe.
+2. Valida que el producto tenga **stock disponible**.
+3. Verifica que el stock sea suficiente para la cantidad solicitada.
+4. Envía la solicitud al microservicio **Express** para registrar la venta.
+5. Envía una solicitud al microservicio **Flask** para **descontar el stock** del producto.
+
+Respuesta:
+
+```json
+{
+ "status": 201,
+ "body": {
+   "message": "Venta creada"
+ }
+}
+```
 
 ---
 
-### Actualizar venta
+## Actualizar venta
 
-PUT `/api/sales/{id}`
+**PUT**
+
+```
+/api/sales/{id}
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
 
 Body:
 
-```json id="5fja6u"
+```json
 {
  "quantity": 3,
  "total": 300
 }
 ```
 
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": {
+   "message": "Venta actualizada"
+ }
+}
+```
+
 ---
 
-### Eliminar venta
+## Eliminar venta
 
-DELETE `/api/sales/{id}`
+**DELETE**
+
+```
+/api/sales/{id}
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
+
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": {
+   "message": "Venta eliminada"
+ }
+}
+```
 
 ---
 
-# Pruebas
+## Obtener ventas del usuario autenticado
 
-Se recomienda usar **Postman** o **Thunder Client**.
+**POST**
 
-Ejemplo:
+```
+/api/my_sales
+```
+
+Header:
+
+```http
+Authorization: Bearer JWT_TOKEN
+```
+
+Este endpoint obtiene únicamente las ventas del **usuario autenticado**.
+
+El **user_id** se extrae desde el **token JWT** en el API Gateway y se envía al microservicio de ventas.
+
+Respuesta:
+
+```json
+{
+ "status": 200,
+ "body": [
+   {
+     "_id": "sale_id",
+     "product_id": "product_id",
+     "quantity": 2,
+     "total": 200,
+     "user_id": 1
+   }
+ ]
+}
+```
+
+---
+
+# Pruebas de la API
+
+Se recomienda utilizar:
+
+* **Postman**
+* **Thunder Client (VS Code)**
+
+Ejemplo de petición:
 
 ```http
 POST http://127.0.0.1:8000/api/sales
+Authorization: Bearer JWT_TOKEN
 ```
 
-El cliente debe interactuar **únicamente con el API Gateway**.
+Todas las peticiones deben realizarse **exclusivamente al API Gateway**, el cual se encarga de la comunicación con los microservicios.
+
 
 ---
 
