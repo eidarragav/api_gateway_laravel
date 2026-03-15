@@ -101,6 +101,30 @@ Para ejecutar el proyecto es necesario tener instalado:
 * Postman o Thunder Client (opcional)
 
 ---
+## Arquitectura del sistema
+
+```mermaid
+flowchart LR
+
+Cliente[Cliente / Postman]
+
+Gateway[API Gateway - Laravel]
+
+Productos[Microservicio Productos - Flask]
+Ventas[Microservicio Ventas - Express]
+
+Firestore[(Firebase Firestore)]
+Mongo[(MongoDB)]
+
+Cliente -->|JWT Authentication| Gateway
+
+Gateway -->|TOKEN_APIS| Productos
+Gateway -->|TOKEN_APIS| Ventas
+
+Productos --> Firestore
+Ventas --> Mongo
+```
+
 
 # Instalación del Proyecto
 
@@ -204,6 +228,7 @@ http://127.0.0.1:8000
 # Microservicio de Productos (Flask)
 
 Este servicio gestiona productos y el stock utilizando **Firebase Firestore**.
+
 
 ## Instalación
 
@@ -350,47 +375,8 @@ Todas las respuestas del Gateway tienen el siguiente formato:
 * **status**: código HTTP devuelto por el microservicio.
 * **body**: contenido de la respuesta del microservicio.
 
----
-
-# Seguridad y Autenticación
-
-El sistema utiliza **dos niveles de seguridad**.
-
-## 1. JWT (Autenticación de usuario)
-
-Después del login el cliente recibe un **JWT token** que debe enviarse en todas las peticiones protegidas.
-
-Header requerido:
-
-```http
-Authorization: Bearer JWT_TOKEN
-```
-
-El API Gateway utiliza este token para:
-
-* autenticar al usuario
-* obtener el **user_id**
-* proteger los endpoints
 
 ---
-
-## 2. Token interno entre microservicios
-
-El API Gateway utiliza un **TOKEN_APIS** para comunicarse con los microservicios.
-
-Este token viaja también en el **header Authorization** cuando el Gateway realiza peticiones a:
-
-* Flask (productos)
-* Express (ventas)
-
-```http
-Authorization: TOKEN_APIS
-```
-
-Este token se define en el archivo `.env` de **todos los servicios**.
-
----
-
 # Endpoints de Autenticación
 
 ## Registrar usuario
@@ -415,11 +401,9 @@ Respuesta:
 
 ```json
 {
- "status": 200,
- "body": {
    "message": "Usuario registrado"
- }
 }
+
 ```
 
 ---
@@ -445,10 +429,7 @@ Respuesta:
 
 ```json
 {
- "status": 200,
- "body": {
    "token": "JWT_TOKEN"
- }
 }
 ```
 
@@ -474,10 +455,7 @@ Respuesta:
 
 ```json
 {
- "status": 200,
- "body": {
    "message": "Sesión cerrada"
- }
 }
 ```
 
@@ -847,42 +825,7 @@ Authorization: Bearer JWT_TOKEN
 
 Todas las peticiones deben realizarse **exclusivamente al API Gateway**, el cual se encarga de la comunicación con los microservicios.
 
-
 ---
-
-# Autor
-
-Proyecto académico desarrollado como práctica de **arquitectura de microservicios** utilizando:
-
-* Laravel
-* Flask
-* Express
-* MongoDB
-* Firebase Firestore
-
-## Arquitectura del sistema
-
-```mermaid
-flowchart LR
-
-Cliente[Cliente / Postman]
-
-Gateway[API Gateway - Laravel]
-
-Productos[Microservicio Productos - Flask]
-Ventas[Microservicio Ventas - Express]
-
-Firestore[(Firebase Firestore)]
-Mongo[(MongoDB)]
-
-Cliente -->|JWT Authentication| Gateway
-
-Gateway -->|TOKEN_APIS| Productos
-Gateway -->|TOKEN_APIS| Ventas
-
-Productos --> Firestore
-Ventas --> Mongo
-```
 
 ## Flujo de creación de venta
 
