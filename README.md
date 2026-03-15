@@ -55,6 +55,29 @@ Responsabilidades:
 * consultar ventas por usuario
 * almacenamiento en **MongoDB**
 
+
+
+```mermaid
+flowchart LR
+
+Cliente[Cliente / Postman]
+
+Gateway[API Gateway - Laravel]
+
+Productos[Microservicio Productos - Flask]
+Ventas[Microservicio Ventas - Express]
+
+Firestore[(Firebase Firestore)]
+Mongo[(MongoDB)]
+
+Cliente -->|JWT Authentication| Gateway
+
+Gateway -->|TOKEN_APIS| Productos
+Gateway -->|TOKEN_APIS| Ventas
+
+Productos --> Firestore
+Ventas --> Mongo
+```
 ---
 
 # Seguridad
@@ -101,30 +124,6 @@ Para ejecutar el proyecto es necesario tener instalado:
 * Postman o Thunder Client (opcional)
 
 ---
-## Arquitectura del sistema
-
-```mermaid
-flowchart LR
-
-Cliente[Cliente / Postman]
-
-Gateway[API Gateway - Laravel]
-
-Productos[Microservicio Productos - Flask]
-Ventas[Microservicio Ventas - Express]
-
-Firestore[(Firebase Firestore)]
-Mongo[(MongoDB)]
-
-Cliente -->|JWT Authentication| Gateway
-
-Gateway -->|TOKEN_APIS| Productos
-Gateway -->|TOKEN_APIS| Ventas
-
-Productos --> Firestore
-Ventas --> Mongo
-```
-
 
 # Instalación del Proyecto
 
