@@ -8,6 +8,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\FlaskController;
 use App\Http\Controllers\ExpressController;
 use App\Http\Controllers\DjangoController;
+use App\Http\Controllers\ProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,5 +59,9 @@ Route::post("/guardar_recetas", [DjangoController::class, "guardar_recetas"]);
 
 //Ruta hacia Express probar Token de peticiones
 Route::post("/users_firebase", [ExpressController::class, "users_firebase"]);
+
+//PRoduct test para prueba de feature
+
+Route::post("/products", [ProductController::class, 'store']);
 
 
